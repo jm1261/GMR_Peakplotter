@@ -1,7 +1,6 @@
 import os
-import sys
 import numpy as np
-import csv
+import sys
 
 
 def config_dir_path():
@@ -19,6 +18,8 @@ def config_dir_path():
     Args:
         The function requires no arguments but will not work unless data
         is present in the new (created) directory and awaits user input.
+    Returns:
+        a current working directory
     '''
     root = os.getcwd()
     main_dir = os.path.join(root, 'Put_Data_Here')
@@ -39,51 +40,39 @@ def config_dir_path():
     return main_dir
 
 
-def file_sort(dir_name):
+def file_sort(dir_path):
     '''
     Numerically sort a directory containing a combination of string file names
     and numerical file names
     Args:
-        dir_name, string with directory path
+        dir_path: <string> directory path
+    Returns:
+        sorted_array: <array> contents of dir_path sorted numerically
     '''
-    return sorted(os.listdir(dir_name))
+    return sorted(os.listdir(dir_path))
 
 
-def extract_files(dir_name, file_string):
+def extract_files(dir_path, file_string):
     '''
     Stack file names in a directory into an array. Returns data files array.
     Args:
-        dir_name, string with directory path
-        file_string, string within dired file names
+        dir_path: <string> directory path
+        file_string: <string> within desired file names
+    Returns:
+        array: <array> containing sorted and selected file name strings
     '''
-    dir_list = file_sort(dir_name)
+    dir_list = file_sort(dir_path)
     return [a for a in dir_list if file_string in a]
 
 
-def check_dir_exists(dir_name):
+def check_dir_exists(dir_path):
     '''
     Check to see if a directory path exists, and if not create one
     Args:
-        dir_name, string directory path
+        dir_path: <string> directory path
     '''
-    if os.path.isdir(dir_name) is False:
-        os.mkdir(dir_name)
-
-
-def array_save(array_name, file_name, dir_name):
-    '''
-    Save array as file name in a given directory
-    Args:
-        array_name: <array> python array to save
-        file_name: <string> file name to save out
-        dir_name: <string> directory name to copy saved array to
-    '''
-    check_dir_exists(dir_name)
-
-    file_name = f'{file_name}.npy'
-    file_path = os.path.join(dir_name, file_name)
-
-    np.save(file_path, array_name)
+    if os.path.isdir(dir_path) is False:
+        os.mkdir(dir_path)
 
 
 def get_filename(file_path):
@@ -93,9 +82,41 @@ def get_filename(file_path):
     file name as a string.
     Args:
         file_name: <string> path to file
+    Returns:
+        file_name: <string> file name string without path or extension
     '''
-
     return os.path.splitext(os.path.basename(file_path))[0]
+
+
+def csv_in(file_path,
+           osa=False):
+    '''
+    Reads in a 2 column csv file (wavelength (nm), intensity) and unpacks
+    the file into two arrays, wavelength and intensity.
+    Args:
+        file_path: <string> file path
+        osa: <bool> if true selects the csv_in parameters for loading
+                      a spectrum taken with Thorlabs OSA
+    Returns:
+        wavelength: <array> measured wavelength values
+        intensity: <array> measured intensity values
+        file_name: <string> file name string without path or extension
+    '''
+    file_name = get_filename(file_path)
+
+    if osa:
+        wavelength, intensity = np.genfromtxt(file_path,
+                                              delimiter=',',
+                                              unpack=True,
+                                              skip_header=33,
+                                              skip_footer=1)
+    else:
+        wavelength, intensity = np.genfromtxt(file_path,
+                                              delimiter=',',
+                                              unpack=True)
+
+
+    return wavelength, intensity, file_name
 
 
 def update_progress(progress):
@@ -134,31 +155,47 @@ def update_progress(progress):
     sys.stdout.flush()
 
 
-def csv_in(file):
+def check_dir_exists(dir_path):
     '''
-    Reads in a 2 column csv file (wavelength (nm), intensity) and unpacks
-    the file into two arrays, wavelength and intensity.
+    Check to see if a directory path exists, and if not create one
     Args:
-        file: <string> file path
+        dir_path: <string> directory path
     '''
-    global wavelength, intensity
-    wavelength, intensity = np.genfromtxt(file,
-                                          delimiter=',',
-                                          unpack=True)
-
-    file_name = get_filename(file)
-    return wavelength, intensity, file_name
+    if os.path.isdir(dir_path) is False:
+        os.mkdir(dir_path)
 
 
-def array_in(file):
+def array_out(array_name,
+              file_name,
+              dir_path):
+    '''
+    Save array as file name in a given directory
+    Args:
+        array_name: <array> python array to save
+        file_name: <string> file name to save out
+        dir_name: <string> directory name to copy saved array to
+    '''
+    check_dir_exists(dir_path)
+
+    file_name = f'{file_name}.npy'
+    file_path = os.path.join(dir_path, file_name)
+
+    np.save(file_path, array_name)
+
+
+def array_in(file_path):
     '''
     Load in a numpy array file, returns the wavelength, intensity and file
     name.
     Args:
         file: <string> file path
+    Returns:
+        wavelength: <array> wavelength values
+        intensity: <array> measured intensity values
+        file_name: <string> file name without path or extensions
     '''
-    data = np.load(file)
-    file_name = get_filename(file)
+    data = np.load(file_path)
+    file_name = get_filename(file_path)
 
     wavelength = data[:,0]
     intensity = data[:,1]
